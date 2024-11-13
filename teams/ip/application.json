@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "name": "Allow-Web-Traffic",
+      "source": "0.0.0.0/0",
+      "destination": "10.0.0.0/24",
+      "protocol": "tcp",
+      "port": "80",
+      "action": "allow"
+    }
+  ]
+}
+
