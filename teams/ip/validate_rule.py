@@ -1,5 +1,6 @@
 import json
 import sys
+import os
 
 def validate_rules(file_path):
     with open(file_path, 'r') as file:
@@ -9,8 +10,9 @@ def validate_rules(file_path):
         if not rule.get("name"):
             print("Validation Error: Rule name missing.")
             sys.exit(1)
-        # Add any additional validation checks as needed
+        # Add additional validation checks here if necessary
 
-validate_rules("security_rules.json")
-validate_rules("application_rules.json")
+# Use relative paths to the IP team directory
+validate_rules("teams/ip/security_rules.json")
+validate_rules("teams/ip/application_rules.json")
 
