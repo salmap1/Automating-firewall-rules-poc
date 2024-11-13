@@ -1,20 +1,24 @@
-name: 'Terraform for Firewall Rules'
+name: 'Terraform Automation'
 
 on:
-  pull_request:
-    branches:
-      - noc
-      - ip
   push:
     branches:
-      - main
+      - 'main'
+      - 'noc'
+      - 'ip'
+  pull_request:
+    branches:
+      - 'main'
+      - 'noc'
+      - 'ip'
 
 jobs:
   terraform:
+    name: 'Terraform Plan and Apply'
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    - name: Checkout repository
       uses: actions/checkout@v2
 
     - name: Setup Python
@@ -22,26 +26,25 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Run Validation Script
-      run: python validate_firewall_changes.py
+    - name: Validate Firewall Rules
+      run: |
+        python teams/${{ github.head_ref }}/validate_rule.py
+      env:
+        TEAM_DIR: teams/${{ github.head_ref }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
+      working-directory: teams/${{ github.head_ref }}
       run: terraform init
-      working-directory: ./teams/${{ github.ref_name }}
 
     - name: Terraform Plan
+      working-directory: teams/${{ github.head_ref }}
       run: terraform plan -input=false
-      working-directory: ./teams/${{ github.ref_name }}
 
-    - name: Terraform Apply
+    - name: Terraform Apply (Push to Main Only)
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -input=false -auto-approve
-      working-directory: ./teams/${{ github.ref_name }}
-      env:
-        TF_VAR_palo_alto_hostname: ${{ secrets.PALO_ALTO_HOSTNAME }}
-        TF_VAR_palo_alto_username: ${{ secrets.PALO_ALTO_USERNAME }}
-        TF_VAR_palo_alto_password: ${{ secrets.PALO_ALTO_PASSWORD }}
+      working-directory: teams/${{ github.head_ref }}
+      run: terraform apply -auto-approve
 
