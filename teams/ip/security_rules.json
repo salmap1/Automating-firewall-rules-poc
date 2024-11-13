@@ -1,6 +1,5 @@
 {
   "Allow-SSH-Rule": {
-    "name": "Allow-SSH-Rule_IP_Team",
     "description": "Allow SSH traffic from any source to any destination by NOC team",
     "source_zones": ["any"],
     "source_addresses": ["5.5.5.5"],
