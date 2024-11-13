@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    panos = {
+      source  = "PaloAltoNetworks/panos"
+      version = "1.9.0"
+    }
+  }
+}
+
 provider "panos" {
   hostname     = var.PALO_ALTO_HOSTNAME
   username     = var.PALO_ALTO_USERNAME
