@@ -1,0 +1,47 @@
+name: 'Terraform for Firewall Rules'
+
+on:
+  pull_request:
+    branches:
+      - noc
+      - ip
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Run Validation Script
+      run: python validate_firewall_changes.py
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ./teams/${{ github.ref_name }}
+
+    - name: Terraform Plan
+      run: terraform plan -input=false
+      working-directory: ./teams/${{ github.ref_name }}
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -input=false -auto-approve
+      working-directory: ./teams/${{ github.ref_name }}
+      env:
+        TF_VAR_palo_alto_hostname: ${{ secrets.PALO_ALTO_HOSTNAME }}
+        TF_VAR_palo_alto_username: ${{ secrets.PALO_ALTO_USERNAME }}
+        TF_VAR_palo_alto_password: ${{ secrets.PALO_ALTO_PASSWORD }}
+
