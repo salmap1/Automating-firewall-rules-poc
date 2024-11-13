@@ -1,51 +1,84 @@
-name: 'Terraform Automation'
+name: 'Terraform with PR Approval'
 
 on:
   push:
     branches:
-      - 'main'
-      - 'noc'
-      - 'ip'
+      - "ip"
+      - "noc"
   pull_request:
-    branches:
-      - 'main'
-      - 'noc'
-      - 'ip'
+    branches: [ "main" ]
+
+permissions:
+  contents: write  # Needed to create PRs
 
 jobs:
-  terraform:
-    name: 'Terraform Plan and Apply'
+  create-pr:
+    if: github.ref == 'refs/heads/ip' || github.ref == 'refs/heads/noc'
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+          title: "Automated PR from ${{ github.ref_name }}"
+          body: "Auto-generated PR to merge changes from ${{ github.ref_name }} into main."
+          labels: "team-${{ github.ref_name }}"
+
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    needs: create-pr
+    environment: local
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
-    - name: Setup Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Get Changed Files
+        id: changes
+        run: |
+          git fetch origin
+          changed_files=$(git diff-tree --no-commit-id --name-only -r HEAD | tr '\n' ',' | sed 's/,$//')
+          echo "Changed files in this commit: $changed_files"
+          echo "CHANGED_FILES=$changed_files" >> $GITHUB_ENV
 
-    - name: Validate Firewall Rules
-      run: |
-        python teams/${{ github.ref }}validate_rule.py
-      env:
-        TEAM_DIR: teams/${{ github.ref }}
+      - name: Extract Previous and Current JSON Versions
+        if: env.CHANGED_FILES
+        run: |
+          for file in $CHANGED_FILES; do
+            git show HEAD^:$file > "old_$file"  # Previous version
+            cp "$file" "new_$file"              # Current version
+          done
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Terraform Init
-      working-directory: teams/${{ github.ref }}
-      run: terraform init
+      - name: Run Change Validation Script
+        run: python validate_rules.py $CHANGED_FILES
 
-    - name: Terraform Plan
-      working-directory: teams/${{ github.ref }}
-      run: terraform plan -input=false
+      - name: Print JSON File
+        run: cat detected_changes.json
 
-    - name: Terraform Apply (Push to Main Only)
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      working-directory: teams/${{ github.ref }}
-      run: terraform apply -auto-approve
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -input=false
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
+        env:
+          PALO_ALTO_HOSTNAME: ${{ secrets.PALO_ALTO_HOSTNAME }}
+          PALO_ALTO_USERNAME: ${{ secrets.PALO_ALTO_USERNAME }}
+          PALO_ALTO_PASSWORD: ${{ secrets.PALO_ALTO_PASSWORD }}
 
