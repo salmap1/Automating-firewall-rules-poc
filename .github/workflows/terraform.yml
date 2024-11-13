@@ -1,12 +1,13 @@
-name: 'Terraform with PR Approval'
+name: 'Terraform with PR and Approval'
 
 on:
   push:
     branches:
       - "ip"
       - "noc"
+      - "main"  # Run apply after merge to main
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main" ]  # Run plan on PR creation to main
 
 permissions:
   contents: write  # Needed to create PRs
@@ -46,24 +47,13 @@ jobs:
           echo "Changed files in this commit: $changed_files"
           echo "CHANGED_FILES=$changed_files" >> $GITHUB_ENV
 
-      - name: Extract Previous and Current JSON Versions
-        if: env.CHANGED_FILES
-        run: |
-          for file in $CHANGED_FILES; do
-            git show HEAD^:$file > "old_$file"  # Previous version
-            cp "$file" "new_$file"              # Current version
-          done
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
       - name: Run Change Validation Script
-        run: python validate_rules.py $CHANGED_FILES
-
-      - name: Print JSON File
-        run: cat detected_changes.json
+        run: python validate_firewall_changes.py $CHANGED_FILES
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -72,6 +62,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
+        if: github.event_name == 'pull_request'
         run: terraform plan -input=false
 
       - name: Terraform Apply
