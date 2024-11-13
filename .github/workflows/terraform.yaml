@@ -28,23 +28,24 @@ jobs:
 
     - name: Validate Firewall Rules
       run: |
-        python teams/${{ github.head_ref }}/validate_rule.py
+        python teams/${{ github.ref }}validate_rule.py
       env:
-        TEAM_DIR: teams/${{ github.head_ref }}
+        TEAM_DIR: teams/${{ github.ref }}
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
-      working-directory: teams/${{ github.head_ref }}
+      working-directory: teams/${{ github.ref }}
       run: terraform init
 
     - name: Terraform Plan
-      working-directory: teams/${{ github.head_ref }}
+      working-directory: teams/${{ github.ref }}
       run: terraform plan -input=false
 
     - name: Terraform Apply (Push to Main Only)
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      working-directory: teams/${{ github.head_ref }}
+      working-directory: teams/${{ github.ref }}
       run: terraform apply -auto-approve
+
 
