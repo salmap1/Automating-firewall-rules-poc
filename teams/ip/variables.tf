@@ -1,15 +1,15 @@
-variable "palo_alto_hostname" {
-  type    = string
-  default = ""  # Leave empty; GitHub Actions will set this as an environment variable
+variable "PALO_ALTO_HOSTNAME" {
+  type        = string
+  description = "Palo Alto firewall hostname"
 }
 
-variable "palo_alto_username" {
-  type    = string
-  default = ""
+variable "PALO_ALTO_USERNAME" {
+  type        = string
+  description = "Palo Alto firewall username"
 }
 
-variable "palo_alto_password" {
-  type    = string
-  default = ""
+variable "PALO_ALTO_PASSWORD" {
+  type        = string
+  description = "Palo Alto firewall password"
 }
 
